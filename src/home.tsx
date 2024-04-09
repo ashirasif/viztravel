@@ -7,6 +7,7 @@ import * as THREE from 'three'
 import React, { useEffect, useRef } from 'react'
 import { useGLTF, useAnimations } from '@react-three/drei'
 import { GLTF } from 'three-stdlib'
+import { a, useSpring } from '@react-spring/three'
 
 type GLTFResult = GLTF & {
   nodes: {
@@ -26,26 +27,74 @@ interface GLTFAction extends THREE.AnimationClip {
 }
 type ContextType = Record<string, React.ForwardRefExoticComponent<JSX.IntrinsicElements['mesh']>>
 
-export function Home(props: JSX.IntrinsicElements['group']) {
+export function Home(props: JSX.IntrinsicElements['group'] & {appear: boolean}) {
   const group = useRef<THREE.Group>(null)
   const { nodes, materials, animations } = useGLTF('/Home.glb') as GLTFResult
   const { actions } = useAnimations(animations, group)
-  useEffect(() => {
-    if (actions['Home.007']) {
-      actions['Home.007'].play()
+
+  // useEffect(() => {
+  //   if (actions['Home.007']) {
+  //     actions['Home.007'].setLoop(THREE.LoopOnce, 1).play()
+  //   }
+  // }, [actions['Home.007']])
+  
+
+  const [appearSpring, appearApi] = useSpring(() => ({
+    from : {
+      scale : [0, 0, 0],
+      rotation: [0, 0, 0]
+    },
+    to: {
+      scale: [100, 100, 100],
+      rotation: [0, 3.49066, 0]
+    },
+    config: {
+      duration: 570,
+      precision: 0.001
     }
-  }, [actions['Home.007']])
+  }))
+  
+  const [pulseSpring, pulseApi] = useSpring(() => ({
+    from : {
+      scale : [1,1,1]
+    },
+    to: [
+      {
+        scale: [1.1, 1.1, 1.1]
+      },
+      {
+        scale: [1,1,1]
+      }
+    ],
+    loop: true,
+    config: {
+      duration: 800,
+      precision: 0.001
+    }
+  }))
+
+  useEffect(() => {
+    if (props.appear) {
+      appearApi.start({
+        onRest: () => {
+          pulseApi.start()
+        }
+      })
+    }
+  }, [props.appear])
+
+
   return (
-    <group ref={group} {...props} dispose={null} position={[0,0,0]} scale={300}>
-      <group name="Scene">
-        <group name="Home001" scale={1}>
+    <a.group ref={group} {...props} dispose={null} position={[0,0,0]} scale={pulseSpring.scale as any}>
+      <a.group name="Scene" scale={appearSpring.scale as any} rotation={appearSpring.rotation as any}>
+        <group name="Home001">
           <mesh name="Cube004" castShadow receiveShadow geometry={nodes.Cube004.geometry} material={materials['Brand-Orange.005']} scale={1}>
             <mesh name="Text003" castShadow receiveShadow geometry={nodes.Text003.geometry} material={nodes.Text003.material} scale-x={0.5} scale-z={0.5} />
           </mesh>
         </group>
         <mesh name="Text004" castShadow receiveShadow geometry={nodes.Text004.geometry} material={nodes.Text004.material} />
-      </group>
-    </group>
+      </a.group>
+    </a.group>
   )
 }
 
